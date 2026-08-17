@@ -185,7 +185,9 @@ kernelPath_get(){
 prepare_aos(){
     # 镜像:内核md5sum aos的md5sum 版本信息
     imgs=(
-        "4070e7f10398bb2e4688ba1d9a877519 F5E99F5DAE94484EB44A9D9637B17108 AOS-6.219.1951_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 5D0B28F183308FFEA1FFC15AFE412326 AOS-6.221.9164_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 3222A4CEC4740D16A9D93C90793AE7A0 AOS-6.221.8945_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 4D63B3F9483D094C47629A2FEDFE7DC8 AOS-6.221.8806_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
     )
     kernel_md5sum=$(md5sum "$kernel_path")
     kernel_md5sum="${kernel_md5sum%% *}" 
