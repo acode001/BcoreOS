@@ -55,10 +55,15 @@
 #      当做实验沙盒进行跨大版本盲刷调测。在新系统不兼容时退回老版本，保障生产设备永远不失联成砖。
 # ==============================================================================
 
-support_url="http://bcoreos.com"
+support_url="https://github.com/acode001/BcoreOS"
 thisDir=$(cd "$(dirname "$0")" && pwd)
 kernel_path=""
 aosImg=""
+aosVersion="0.0"
+BcoreOSTag=""
+outputName=""
+outputAOS=""
+outputBcoreOS=""
 get_command_path_to_var() {
     local cmd="$1"
     local __result_var="$2"
@@ -82,6 +87,33 @@ for cmd in $REQUIRED_CMDS; do
         exit 1
     fi
 done
+}
+# ini 读取
+ini_read() {
+    local file="$1"
+    local section="$2"
+    local key="$3"
+    [ -s "$file" ] || return 0
+    awk -F '=' \
+        -v sec="[$section]" -v k="$key" \
+        '
+        $0 ~ "^[ \t]*\\[" && $0 ~ sec { f=1; next }
+        $0 ~ "^[ \t]*\\[" { f=0 }
+        f {
+            gsub(/^[ \t]+|[ \t]+$/, "", $1)
+            if ($1 == k) {
+                gsub(/^[ \t]+|[ \t\r\n]+$/, "", $2)
+                print $2
+                exit
+            }
+        }
+        ' "$file" 2>/dev/null
+}
+# 读取历史配置
+load_config() {
+    aosImg=$(ini_read "$thisDir/aos/config" "config" "aosImg")
+    BcoreOSTag=$(ini_read "$thisDir/aos/config" "config" "BcoreOSTag")
+    outputName=$(ini_read "$thisDir/aos/config" "config" "outputName")
 }
 download_file() {
     local rel_path="$1"   # 相对路径（相对于基础 URL）
@@ -183,11 +215,12 @@ kernelPath_get(){
 }
 # 准备aos系统
 prepare_aos(){
+# 设置系统名字
     # 镜像:内核md5sum aos的md5sum 版本信息
     imgs=(
-        "4070e7f10398bb2e4688ba1d9a877519 5D0B28F183308FFEA1FFC15AFE412326 AOS-6.221.9164_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
-        "4070e7f10398bb2e4688ba1d9a877519 3222A4CEC4740D16A9D93C90793AE7A0 AOS-6.221.8945_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
-        "4070e7f10398bb2e4688ba1d9a877519 4D63B3F9483D094C47629A2FEDFE7DC8 AOS-6.221.8806_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 0EF9F4D281CB0F6F46C770F600BE732A AOS-6.223.1067_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 D9EBD47831DE98026858DF617F3AD627 AOS-6.222.2501_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 B3347EF11FFBB19F4216BF5947ECD8CD AOS-6.222.2440_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
     )
     kernel_md5sum=$(md5sum "$kernel_path")
     kernel_md5sum="${kernel_md5sum%% *}" 
@@ -200,7 +233,7 @@ prepare_aos(){
     done
     match_count=${#matches[@]}
     if [ "$match_count" -gt 0 ]; then
-        echo "Available AOS versions for BoreOS (default: 1):"
+        echo "Available AOS versions for BoreOS:"
         options=()
         for m in "${matches[@]}"; do
             cache_md5sum="${m#* }"
@@ -221,11 +254,32 @@ prepare_aos(){
         for i in "${!options[@]}"; do
             printf "%d) %s\n" $((i+1)) "${options[i]}"
         done
-        read -p "Select [1-${match_count}]: " choice
+        default=1
+        for i in "${!imgs[@]}"; do
+            second=$(echo "${imgs[$i]}" | awk '{print $2}')
+            if [ "$thisDir/aos/aos-$second" = "$aosImg" ]; then
+                default=$((i + 1))
+                break
+            fi
+        done
+        read -p "Select [1-${match_count}] (default ${default}): " choice
+        choice=${choice:-$default}
         if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$match_count" ]; then
             choice=1
         fi
         selected_aos="${options[$((choice-1))]}"
+        {
+            max=0
+            for x in ${selected_aos//[-_]/ }; do
+                if [[ "$x" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+                    n=${x//[^.]}
+                    if ((${#n} > max)); then
+                        max=${#n}
+                        aosVersion="$x"
+                    fi
+                fi
+            done
+        }
         img="${matches[$((choice-1))]}"
         cache_md5sum="${img#* }"
         cache_md5sum="${cache_md5sum%% *}"
@@ -254,6 +308,116 @@ prepare_aos(){
             echo "  $third"
         done
         exit 1
+    fi
+}
+# 设置BcoreOS标记
+set_BcoreOSTag(){
+    if [ -z "$BcoreOSTag" ]; then
+        BcoreOSTag="BcoreOS"
+    fi
+    echo -e "\n[BcoreOS WARNING] Modifying this value breaks package universality and blocks open sharing."
+    echo "                  Customized private tagging strictly requires a commercial license."
+    echo "                  If changed without proper alignment, the update package WILL NOT WORK."
+    read -e -i "$BcoreOSTag" -p "change BcoreOS tag (tags must match to allow update): " choice
+    choice="${choice//[[:space:]]/}"
+    if [ -n "$choice" ]; then
+        BcoreOSTag="$choice"
+    else
+        BcoreOSTag="BcoreOS"
+        echo -e "\n[BcoreOS Warning] Tag cannot be empty. Reverting to default: $BcoreOSTag"
+    fi
+}
+get_output_name(){
+    local distro="unknown"
+    local version=""
+    local line=""
+
+    # --------------------------------------------------------------------------
+    # 🌟 标准 /etc/os-release (纯 Shell 内置流式精确抓取)
+    # --------------------------------------------------------------------------
+    if [ -s /etc/os-release ]; then
+        while read -r line || [ -n "$line" ]; do
+            # 1. 精准截取等号右边的 ID
+            if [[ "$line" =~ ^ID= ]]; then
+                distro="${line#*=}"
+                distro="${distro//[\"\']/}"
+                distro="${distro// /}"
+            fi
+            # 2. 精准截取等号右边的准确 VERSION_ID
+            if [[ "$line" =~ ^VERSION_ID= ]]; then
+                version="${line#*=}"
+                version="${version//[\"\']/}"
+                version="${version// /}"
+            fi
+        done < /etc/os-release
+
+        # 针对红帽系及衍生商业系统进行血统规范化
+        if [ "$distro" = "rhel" ] || [ "$distro" = "ol" ]; then
+            distro="rhel"
+        fi
+
+    # --------------------------------------------------------------------------
+    # 🧱 旧红帽系 / 商业特殊系统的“历史古董通道” (CentOS 5/6/7)
+    # --------------------------------------------------------------------------
+    elif [ -s /etc/redhat-release ]; then
+        read -r line < /etc/redhat-release
+        line="${line,,}"  # 内存级转换为纯小写
+        
+        if [[ "$line" == *"centos"* ]]; then
+            distro="centos"
+        elif [[ "$line" == *"rocky"* ]]; then
+            distro="rocky"
+        else
+            distro="rhel"
+        fi
+
+        # 纯原生精准剥离提取数字：利用通配符截取发行版关键字后面的准确数字
+        local tmp="${line##*release }"
+        [ "$tmp" = "$line" ] && tmp="${line##*version }"
+        # 去除数字后面的所有尾随非数字杂音（如截取 7.9.2009 (core) 得到 7.9.2009）
+        version="${tmp%% *}"
+
+    # --------------------------------------------------------------------------
+    # 📡 老 Debian 系 / 纯净野生社区版遗留机
+    # --------------------------------------------------------------------------
+    elif [ -s /etc/debian_version ]; then
+        distro="debian"
+        read -r version < /etc/debian_version
+        version="${version// /}"
+    fi
+
+    # --------------------------------------------------------------------------
+    # 🧠 对提取结果进行“绝对准确净化”
+    # --------------------------------------------------------------------------
+    # 1. 强行拉平系统名大小写
+    distro="${distro,,}"
+    
+    # 2. 【核心修改】去除由于部分发行版带有的多余末尾小版本号（例如把 22.04.4 精准净化为 22.04）
+    # 保持主+次版本号的最高准确度，且不使用 cut 命令。
+    local clean_version="$version"
+    if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        # 如果是三段式（如 10.2.1），剥离最后一段点和数字，变成 10.2
+        clean_version="${version%.*}"
+    fi
+
+    # 3. 终极自愈：如果版本为空，强行注入安全兜底
+    [ -z "$clean_version" ] && clean_version="unknown"
+
+    # 4. 完美输出包含【准确版本号】的唯一血统标签 (如: rocky10.2, ubuntu22.04, centos7.9)
+    echo "${distro}${clean_version}"
+}
+# 设置输出名字
+set_output_name(){
+    if [ -z "$outputName" ]; then
+        outputName=$(get_output_name)-$(date +%Y%m%d)
+    fi
+    read -e -i "$outputName" -p "change output name: " choice
+    choice="${choice//[[:space:]]/}"
+    if [ -n "$choice" ]; then
+        outputName="$choice"
+    else
+        outputName=$(get_output_name)-$(date +%Y%m%d)
+        echo -e "\n[Output name Warning] outputName cannot be empty. Reverting to default: $outputName"
     fi
 }
 # 准备打包工具
@@ -369,6 +533,7 @@ DefaultDependencies=no
 After=initrd-root-fs.target
 Before=initrd-switch-root.target
 IgnoreOnIsolate=true
+ConditionPathExists=!/sysroot$outputBcoreOS
 [Service]
 Type=oneshot
 ExecStart=$cmd
@@ -420,20 +585,33 @@ patch_initrds(){
 }
 # 检查需要的工具是否存在
 check_tool
+# 读取历史配置
+load_config
 # 获取内核路径
 kernelPath_get
 # 准备aos系统
 prepare_aos
+# 设置BcoreOS标记
+set_BcoreOSTag
+# 设置输出名字
+set_output_name
+outputAOS="$thisDir/aos/$outputName-$aosVersion_AOS.img.gz"
+outputBcoreOS="$thisDir/aos/$outputName-$aosVersion_BcoreOS.upt"
+if [[ -a "$outputAOS" ]];then rm -rf "$outputAOS";fi
+if [[ -a "$outputBcoreOS" ]];then rm -rf "$outputBcoreOS";fi
 echo -n "Configuring system... "
 (
     PPID_OF_MAIN=$$
     SECONDS=0
     while true; do
-        if ! kill -0 $PPID_OF_MAIN 2>/dev/null; then
-            exit 0
+        if (( SECONDS % 10 == 5 )); then
+            if ! kill -0 $PPID_OF_MAIN 2>/dev/null; then
+                exit 0
+            fi
         fi
-        echo -e "\rConfiguring system... ${SECONDS}s\c"
-        sleep 1
+        display_seconds=$(( SECONDS / 10 ))
+        echo -e "\rConfiguring system... ${display_seconds}s\c"
+        sleep 0.1
         SECONDS=$((SECONDS + 1))
     done
 ) &
@@ -442,6 +620,8 @@ TIMER_PID=$!
 prepare_ptool
 # 在所有initrd中插入脚本重启完成系统打包,生成升级包和安装包
 patch_initrds
+# 删除
+rm -rf "$thisDir/aos/ptool"
 kill "$TIMER_PID" 2>/dev/null
 wait "$TIMER_PID" 2>/dev/null
 echo -e "\rConfiguring system... done."
@@ -449,15 +629,24 @@ echo -e "\rConfiguring system... done."
 cat > "$thisDir/aos/config" <<EOF
 [config]
 aosImg=$aosImg
+BcoreOSTag=$BcoreOSTag
+outputName=$outputName
+aosVersion=$aosVersion
 EOF
 sync
 echo "Config is:
-    aosImg:$aosImg
+    aosImg    : $aosImg
+    BcoreOSTag: $BcoreOSTag
+    outputName: $outputName-$aosVersion
 "
-echo "System will reboot to make BcoreOS..."
-for i in {9..1}; do
-    echo -ne "\rPress 'n' to cancel (${i}s) "
-    read -s -n 1 -t 1 char
+echo "System will reboot to build BcoreOS. After the reboot is complete, the following files will be generated:"
+echo "  - Pre-installation service package: $outputAOS"
+echo "  - All-in-one Update package       : $outputBcoreOS"
+
+for i in {18..1}; do
+    current_sec=$(( (i + 1) / 2 ))
+    echo -ne "\rPress 'n' to cancel (${current_sec}s) "
+    read -s -n 1 -t 0.5 char
     status=$?
     if [[ "${char,}" == "n" ]]; then
         echo -e "\nReboot canceled."
