@@ -10,6 +10,8 @@
 2. 系统启动时先启动AOS（与用户自行打包的BcoreOS有相同的内核二进制），启动后初始化网络磁盘后，切换BcoreOS系统；
 3. 打包生成B1版本的BcoreOS系统携带配套的A1版本的AOS，升级时先把目标机器的AOS系统升级为A1版本，再由A1版本的AOS升级B1版本的BcoreOS；
 
+---
+
 ## ✨ BcoreOS核心功能
 #### 💡 状态说明
 * 🟢 **已实现**：完成开发，进入维护阶段。
@@ -36,8 +38,9 @@
 |                      | 系统还原                         |  🟡 测试改进中  | 使用overlay机制，当前仅在升级时擦除上层临时数据 |
 |                      | 全盘加密                         |  🟢             | 制作BoreOS时设置的标记用于全盘密码，BcoreOS相互升级需要相同的标记 |
 
+---
 
-## 💻 已适配系统
+## 💻 已适配系统<a id="supported-systems"></a>
 #### 💡 状态说明
 * 🟢 **适配完成**：已适配完成，进入维护阶段。
 * 🟡 **正在适配**：正常适配测试。
@@ -45,9 +48,58 @@
   
 | 系统 |  系统版本| 适配进度 | 内核版本 | 适配AOS最新版本 |
 | :--- | :--- | :--- |:--- |:--- |
-| **Rockey Linux** | Rocky 10.1  | 🟢 已适配完成  | 6.12.0-124.8.1 4070e7f10398bb2e4688ba1d9a877519  |[2026-8-21 发布首个版本](https://sourceforge.net/projects/bcoreos/files/AOS-img/rocky10.1_6.12.0-124.8.1_4070e7f10398bb2e4688ba1d9a877519/)|
+| **Rockey Linux** | [Rocky 10.1](https://dl.rockylinux.org/vault/rocky/10.1/isos/x86_64/Rocky-10.1-x86_64-dvd1.iso)  | 🟢 已适配完成  | 6.12.0-124.8.1 4070e7f10398bb2e4688ba1d9a877519  |[2026-8-21 发布首个版本](https://sourceforge.net/projects/bcoreos/files/AOS-img/rocky10.1_6.12.0-124.8.1_4070e7f10398bb2e4688ba1d9a877519/)|
 |                   |Rocky 10.2  |  🔴 计划适配   | ||
 
+---
+
+## 💿 快速安装
+1. 准备系统母盘：[通用发行版](#generic-os-base)   [已有云服务系统](#cloud-os-clone)
+2. 查看系统母盘的内核校验和，如：4070e7f10398bb2e4688ba1d9a877519
+```
+md5sum /boot/vmlinuz-$(uname -r)
+```
+
+3. 根据内核校验和下载对应的 [AOS](#supported-systems) ,如：aos-6.223.1067-202608201848-4070e7f10398bb2e4688ba1d9a877519-6.12.0-124.8.1.el10_1.x86_64-ext2-x86-64-vda.img.gz
+4. 在母盘系统内创建aos目录并拷贝`BcoreOS_build.sh`和下载的`aos-*`到aos目录下;
+5. 运行`BcoreOS_build.sh`脚本
+```
+
+[root@localhost aos]# chmod +x BcoreOS_build.sh
+[root@localhost aos]# ./BcoreOS_build.sh
+Available AOS versions for BoreOS:
+1) AOS-6.223.1067_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
+2) AOS-6.222.2501_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
+3) AOS-6.222.2440_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
+Select [1-3] (default 1): 1
+Download succeeded: /root/aos/aos-0EF9F4D281CB0F6F46C770F600BE732A
+change BcoreOS tag (tags must match to allow update): BcoreOS
+change output name: rocky10.1-20260821
+Configuring system... done.
+Config is:
+    aosImg    : /root/aos/aos-0EF9F4D281CB0F6F46C770F600BE732A
+    BcoreOSTag: BcoreOS
+    outputName: rocky10.1-20260821-6.223.1067
+
+System will reboot to build BcoreOS. After the reboot is complete, the following files will be generated:
+  - Pre-installation service package: /root/aos/rocky10.1-20260821-6.223.1067_AOS.img.gz
+  - All-in-one Update package       : /root/aos/rocky10.1-20260821-6.223.1067_BcoreOS.upt
+Press 'n' to cancel (7s)
+```
+6. 等待系统重启生成AOS(安装包)和BcoreOS(升级包)两个文件;
+
+> [AOS(安装包)的使用]()
+> [BcoreOS(升级包)的使用]()
+
+### 📀 使用通用发行版制作系统母盘 <a id="generic-os-base"></a>
+1. 下载linux发行版iso,[已适配系统](#已适配系统),如[rocky10.1](https://dl.rockylinux.org/vault/rocky/10.1/isos/x86_64/Rocky-10.1-x86_64-dvd1.iso)
+2. 使用虚拟机或者物理机安装系统、驱动、应用程序
+3. 使用`md5sum /boot/vmlinuz-$(uname -r)`查看安装好的系统的内核校验和在[已适配系统](#supported-systems)清单范围内，不在请联系我们适配
+
+### ☁️ 使用已有云服务系统作为系统母盘<a id="cloud-os-clone"></a>
+使用`md5sum /boot/vmlinuz-$(uname -r)`查看安装好的系统的内核校验和在[已适配系统](#supported-systems) 清单范围内，不在请联系我们适配
+
+---
 
 
 ## 📄 开源协议
