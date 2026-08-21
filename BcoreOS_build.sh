@@ -57,6 +57,8 @@
 
 support_url="https://github.com/acode001/BcoreOS"
 thisDir=$(cd "$(dirname "$0")" && pwd)
+aosDir="$thisDir"
+if [ "${thisDir##*/}" != "aos" ]; then aosDir="$thisDir/aos";fi
 kernel_path=""
 aosImg=""
 aosVersion="0.0"
@@ -78,7 +80,7 @@ get_command_path_to_var() {
 }
 # 检查需要的工具是否存在
 check_tool(){
-REQUIRED_CMDS="dd gzip md5sum kill ln mkdir pwd tail tr wait wget"
+REQUIRED_CMDS="dd gzip md5sum kill ln mkdir pwd sort tail tr wait wget"
 for cmd in $REQUIRED_CMDS; do
     local realPath=""
     get_command_path_to_var "$cmd" "realPath"
@@ -111,9 +113,9 @@ ini_read() {
 }
 # 读取历史配置
 load_config() {
-    aosImg=$(ini_read "$thisDir/aos/config" "config" "aosImg")
-    BcoreOSTag=$(ini_read "$thisDir/aos/config" "config" "BcoreOSTag")
-    outputName=$(ini_read "$thisDir/aos/config" "config" "outputName")
+    aosImg=$(ini_read "$aosDir/config" "config" "aosImg")
+    BcoreOSTag=$(ini_read "$aosDir/config" "config" "BcoreOSTag")
+    outputName=$(ini_read "$aosDir/config" "config" "outputName")
 }
 download_file() {
     local rel_path="$1"   # 相对路径（相对于基础 URL）
@@ -211,7 +213,29 @@ kernelPath_get(){
     boot_image="/${boot_image#*/}"
     kernel_path="$boot_image"
     if [ ! -e "$kernel_path" ];then kernel_path="/boot$boot_image";fi
-    if [ ! -e "$kernel_path" ];then  echo "[ERROR] Failed to find kernel: $kernel_path. Please contact $support_url.";exit 1;fi
+    if [ ! -e "$kernel_path" ];then  echo "[ERROR] Failed to find kernel: $kernel_path. Please contact us at $support_url.";exit 1;fi
+}
+# 获取本地AOS镜像文件 
+get_imgs_from_local(){
+    local kernel_md5sum="$1"
+    local -n l_fileList="$2"
+    local rawList=()
+    for file in "$aosDir"/*.img.gz; do
+        if [ -f "$file" ] && [ ! -L "$file" ]; then
+            local kernelhash="${file##*/}"
+            kernelhash="${kernelhash#*-}"
+            kernelhash="${kernelhash#*-}"
+            kernelhash="${kernelhash#*-}"
+            kernelhash="${kernelhash%%-*}"
+            if compare_ignore_case "$kernel_md5sum" "$kernelhash"; then
+               rawList+=("$file")
+            fi
+        fi
+    done
+    l_fileList=()
+    while IFS= read -r line; do
+        l_fileList+=("$line")
+    done < <(printf '%s\n' "${rawList[@]}" | sort -Vr)
 }
 # 准备aos系统
 prepare_aos(){
@@ -231,14 +255,20 @@ prepare_aos(){
             matches+=("$img")
         fi
     done
+    local fileList=()
+    get_imgs_from_local $kernel_md5sum fileList
     match_count=${#matches[@]}
-    if [ "$match_count" -gt 0 ]; then
-        echo "Available AOS versions for BoreOS:"
+    fileList_count=${#fileList[@]}
+    if [  "$((match_count + fileList_count))" -gt 0 ]; then
+        echo "Available AOS versions for BoreOS($kernel_path):"
         options=()
+        for m in "${fileList[@]}"; do
+            options+=("$m")
+        done
         for m in "${matches[@]}"; do
             cache_md5sum="${m#* }"
             cache_md5sum="${cache_md5sum%% *}"
-            cache_path="$thisDir/aos/aos-$cache_md5sum"
+            cache_path="$aosDir/aos-$cache_md5sum"
             actual_md5=""
             if [ -e "$cache_path" ];then
                 actual_md5=$(md5sum "$cache_path")
@@ -255,16 +285,22 @@ prepare_aos(){
             printf "%d) %s\n" $((i+1)) "${options[i]}"
         done
         default=1
+        for i in "${!fileList[@]}"; do
+            if [ "$i" = "$aosImg" ]; then
+                default=$((i + 1))
+                break
+            fi
+        done
         for i in "${!imgs[@]}"; do
             second=$(echo "${imgs[$i]}" | awk '{print $2}')
-            if [ "$thisDir/aos/aos-$second" = "$aosImg" ]; then
+            if [ "$aosDir/aos-$second" = "$aosImg" ]; then
                 default=$((i + 1))
                 break
             fi
         done
         read -p "Select [1-${match_count}] (default ${default}): " choice
         choice=${choice:-$default}
-        if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$match_count" ]; then
+        if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$((match_count + fileList_count))" ]; then
             choice=1
         fi
         selected_aos="${options[$((choice-1))]}"
@@ -278,30 +314,34 @@ prepare_aos(){
                         aosVersion="$x"
                     fi
                 fi
-            done
+           done
         }
-        img="${matches[$((choice-1))]}"
-        cache_md5sum="${img#* }"
-        cache_md5sum="${cache_md5sum%% *}"
-        cache_path="$thisDir/aos/aos-$cache_md5sum"
-        actual_md5=""
-        if [ -e "$cache_path" ];then
-            actual_md5=$(md5sum "$cache_path")
-            actual_md5="${actual_md5%% *}"
-        fi
-        if ! compare_ignore_case "$cache_md5sum" "$actual_md5"; then
-            download_file "aos/aos-$cache_md5sum"  "$cache_path"
-            actual_md5=$(md5sum "$cache_path")
-            actual_md5="${actual_md5%% *}"
-            if ! compare_ignore_case "$cache_md5sum" "$actual_md5"; then
-                echo "Invalid AOS image: ${img#* * }. Please contact $support_url."
-                exit 1
+        if [ "$choice" -le "$fileList_count" ];then
+            aosImg="${fileList[$((choice - 1))]}"
+        else
+            img="${matches[$((choice - fileList_count - 1))]}"
+            cache_md5sum="${img#* }"
+            cache_md5sum="${cache_md5sum%% *}"
+            cache_path="$aosDir/aos-$cache_md5sum"
+            actual_md5=""
+            if [ -e "$cache_path" ];then
+                actual_md5=$(md5sum "$cache_path")
+                actual_md5="${actual_md5%% *}"
             fi
+            if ! compare_ignore_case "$cache_md5sum" "$actual_md5"; then
+                download_file "$aosDir/aos-$cache_md5sum"  "$cache_path"
+                actual_md5=$(md5sum "$cache_path")
+                actual_md5="${actual_md5%% *}"
+                if ! compare_ignore_case "$cache_md5sum" "$actual_md5"; then
+                    echo "Invalid AOS image: ${img#* * }. Please contact us at $support_url."
+                    exit 1
+                fi
+            fi
+            aosImg="$cache_path"
         fi
-        aosImg="$cache_path"
         return 0
     else
-        echo "No AOS version supports the kernel: $kernel_path. Please contact $support_url."
+        echo "No AOS version supports this kernel: $kernel_path. Please contact us at $support_url."
         echo "Supported AOS versions are:"
         for m in "${imgs[@]}"; do
             third="${m#* * }"
@@ -424,7 +464,7 @@ set_output_name(){
 prepare_ptool(){
     #读取keyData
     local keyData=""
-    local aosImgPath="$thisDir/aos/aosImg"
+    local aosImgPath="$aosDir/aosImg"
     {
         gzip -cd $aosImg > "$aosImgPath"
         local size=64
@@ -441,12 +481,12 @@ prepare_ptool(){
         done
     }
     if [[ "$keyData" != *\] ]]; then
-        echo "Invalid img: $aosImg. Please contact $support_url."
+        echo "Invalid img: $aosImg. Please contact us at $support_url."
         exit 1   
     fi
     keyData="${keyData%\]}"
     #echo  "keyData:$keyData"
-    local ptool="$thisDir/aos/ptool"
+    local ptool="$aosDir/ptool"
     > "$ptool"
     IFS=' ' read -r -a NUMS <<< "$(echo "$keyData" | tr ',' ' ')"
     TOTAL_ELEMENTS=${#NUMS[@]}
@@ -472,7 +512,7 @@ patch_initrd(){
     local initrd_file="$1"
     local filename="${initrd_file##*/}"
     local name_without_ext="${filename%.img}"
-    local tmpDir="$thisDir/aos/$name_without_ext"
+    local tmpDir="$aosDir/$name_without_ext"
     if [ -d "$tmpDir" ];then return;fi
     mkdir $tmpDir
     local olddir=$(pwd)
@@ -516,10 +556,10 @@ patch_initrd(){
         local ptool_real_md5="2";
         if [[ -e "$tmpDir/ptool" ]];then
             ptool_md5=$(md5sum "$tmpDir/ptool");
-            ptool_real_md5=$(md5sum "$thisDir/aos/ptool");
+            ptool_real_md5=$(md5sum "$aosDir/ptool");
         fi
         if [[ $ptool_md5 != $ptool_real_md5 ]];then
-            \cp -a "$thisDir/aos/ptool" "$tmpDir/ptool"
+            \cp -a "$aosDir/ptool" "$tmpDir/ptool"
             patched=1;
         fi
     }
@@ -595,8 +635,8 @@ prepare_aos
 set_BcoreOSTag
 # 设置输出名字
 set_output_name
-outputAOS="$thisDir/aos/$outputName-$aosVersion_AOS.img.gz"
-outputBcoreOS="$thisDir/aos/$outputName-$aosVersion_BcoreOS.upt"
+outputAOS="$aosDir/$outputName-${aosVersion}_AOS.img.gz"
+outputBcoreOS="$aosDir/$outputName-${aosVersion}_BcoreOS.upt"
 if [[ -a "$outputAOS" ]];then rm -rf "$outputAOS";fi
 if [[ -a "$outputBcoreOS" ]];then rm -rf "$outputBcoreOS";fi
 echo -n "Configuring system... "
@@ -621,12 +661,12 @@ prepare_ptool
 # 在所有initrd中插入脚本重启完成系统打包,生成升级包和安装包
 patch_initrds
 # 删除
-rm -rf "$thisDir/aos/ptool"
+rm -rf "$aosDir/ptool"
 kill "$TIMER_PID" 2>/dev/null
 wait "$TIMER_PID" 2>/dev/null
 echo -e "\rConfiguring system... done."
 
-cat > "$thisDir/aos/config" <<EOF
+cat > "$aosDir/config" <<EOF
 [config]
 aosImg=$aosImg
 BcoreOSTag=$BcoreOSTag

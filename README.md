@@ -53,7 +53,7 @@
 
 ---
 
-## 💿 快速安装
+## ⚡ 快速开始
 1. 准备系统母盘：[通用发行版](#generic-os-base)   [已有云服务系统](#cloud-os-clone)
 2. 查看系统母盘的内核校验和，如：4070e7f10398bb2e4688ba1d9a877519
 ```
@@ -67,24 +67,25 @@ md5sum /boot/vmlinuz-$(uname -r)
 
 [root@localhost aos]# chmod +x BcoreOS_build.sh
 [root@localhost aos]# ./BcoreOS_build.sh
-Available AOS versions for BoreOS:
-1) AOS-6.223.1067_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
-2) AOS-6.222.2501_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
-3) AOS-6.222.2440_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
+Available AOS versions for BoreOS(/boot/vmlinuz-6.12.0-124.8.1.el10_1.x86_64):
+1) /root/aos/aos-6.223.1067-202608201848-4070e7f10398bb2e4688ba1d9a877519-6.12.0-124.8.1.el10_1.x86_64-ext2-x86-64-vda.img.gz
+2) AOS-6.223.1067_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (already downloaded at: /root/aos/aos-0EF9F4D281CB0F6F46C770F600BE732A)
+3) AOS-6.222.2501_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
+4) AOS-6.222.2440_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64) (not downloaded yet)
 Select [1-3] (default 1): 1
 Download succeeded: /root/aos/aos-0EF9F4D281CB0F6F46C770F600BE732A
 change BcoreOS tag (tags must match to allow update): BcoreOS
 change output name: rocky10.1-20260821
 Configuring system... done.
 Config is:
-    aosImg    : /root/aos/aos-0EF9F4D281CB0F6F46C770F600BE732A
+    aosImg    : /root/aos/aos-6.223.1067-202608201848-4070e7f10398bb2e4688ba1d9a877519-6.12.0-124.8.1.el10_1.x86_64-ext2-x86-64-vda.img.gz
     BcoreOSTag: BcoreOS
     outputName: rocky10.1-20260821-6.223.1067
 
 System will reboot to build BcoreOS. After the reboot is complete, the following files will be generated:
   - Pre-installation service package: /root/aos/rocky10.1-20260821-6.223.1067_AOS.img.gz
   - All-in-one Update package       : /root/aos/rocky10.1-20260821-6.223.1067_BcoreOS.upt
-Press 'n' to cancel (7s)
+Press 'n' to cancel (8s)
 ```
 6. 等待系统重启生成AOS(安装包)和BcoreOS(升级包)两个文件;
 
@@ -92,7 +93,7 @@ Press 'n' to cancel (7s)
 > [BcoreOS(升级包)的使用]()
 
 ### 📀 使用通用发行版制作系统母盘 <a id="generic-os-base"></a>
-1. 下载linux发行版iso,[已适配系统](#已适配系统),如[rocky10.1](https://dl.rockylinux.org/vault/rocky/10.1/isos/x86_64/Rocky-10.1-x86_64-dvd1.iso)
+1. 下载linux发行版iso,如[rocky10.1](https://dl.rockylinux.org/vault/rocky/10.1/isos/x86_64/Rocky-10.1-x86_64-dvd1.iso)
 2. 使用虚拟机或者物理机安装系统、驱动、应用程序
 3. 使用`md5sum /boot/vmlinuz-$(uname -r)`查看安装好的系统的内核校验和在[已适配系统](#supported-systems)清单范围内，不在请联系我们适配
 
