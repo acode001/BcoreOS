@@ -1,3 +1,4 @@
+<a id="doc-top"></a>
 # BcoreOS 🚀
 
 > **彻底拉平测试与生产环境鸿沟，清除多发行版历史包袱；实现降低远程升级失败导致设备失联或不可启动的风险的“盲盒式”原子换代。**
@@ -107,7 +108,7 @@ Press 'n' to cancel (8s)
 
 ---
 ### 🧼 已有linux系统安装全新安装BcoreOS系统<a id="os-reinstall-fresh"></a>
-1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall](#)脚本到目标机器
+1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall](#doc-top)脚本到目标机器
 2. 运行`./aosinstall  ./rocky10.1-20260821-6.223.1067_AOS.img.gz`进行系统覆盖安装
 ```
 [root@localhost aos]# chmod +x aosinstall

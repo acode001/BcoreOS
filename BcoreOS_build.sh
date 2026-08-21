@@ -233,13 +233,17 @@ get_imgs_from_local(){
         fi
     done
     l_fileList=()
+    if [ ${#rawList[@]} -eq 0 ]; then
+        return 0
+    fi
     while IFS= read -r line; do
-        l_fileList+=("$line")
+        if [ -n "$line" ]; then
+            l_fileList+=("$line")
+        fi
     done < <(printf '%s\n' "${rawList[@]}" | sort -Vr)
 }
 # 准备aos系统
 prepare_aos(){
-# 设置系统名字
     # 镜像:内核md5sum aos的md5sum 版本信息
     imgs=(
         "4070e7f10398bb2e4688ba1d9a877519 0EF9F4D281CB0F6F46C770F600BE732A AOS-6.223.1067_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
@@ -257,8 +261,8 @@ prepare_aos(){
     done
     local fileList=()
     get_imgs_from_local $kernel_md5sum fileList
-    match_count=${#matches[@]}
     fileList_count=${#fileList[@]}
+    match_count=${#matches[@]}
     if [  "$((match_count + fileList_count))" -gt 0 ]; then
         echo "Available AOS versions for BoreOS($kernel_path):"
         options=()
@@ -329,7 +333,7 @@ prepare_aos(){
                 actual_md5="${actual_md5%% *}"
             fi
             if ! compare_ignore_case "$cache_md5sum" "$actual_md5"; then
-                download_file "$aosDir/aos-$cache_md5sum"  "$cache_path"
+                download_file "aos/aos-$cache_md5sum"  "$cache_path"
                 actual_md5=$(md5sum "$cache_path")
                 actual_md5="${actual_md5%% *}"
                 if ! compare_ignore_case "$cache_md5sum" "$actual_md5"; then

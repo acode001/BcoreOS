@@ -279,7 +279,13 @@ fi
   xiaozhiosinit=""
   if [ $hasError -eq 0 ];then xiaozhiosinit="/dev/shm/xiaozhiosinit"
   else xiaozhiosinit="/xiaozhi/xiaozhiosinit"; fi
-  echo -e "[network]\nip1=$ipaddr\ngateway=$defaultroute\n" >$xiaozhiosinit
+  str="[network]\n"
+  i=1
+  for ip in $ipaddr; do
+    str="${str}ip$i=$ip\n"
+    ((i++))
+  done
+  echo -e "${str}gateway=$defaultroute\n" > "$xiaozhiosinit"
   xiaozhiosinitsize=$(ls -l $xiaozhiosinit | awk '{print $5}')
   count=$((($xiaozhiosinitsize+487) / 488))
   skip=0;
