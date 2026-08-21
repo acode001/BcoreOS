@@ -53,7 +53,7 @@
 
 ---
 
-## ⚡ 快速开始
+## ⚡ 快速开始 <a id="quick-start"></a>
 1. 准备系统母盘：[通用发行版](#generic-os-base)   [已有云服务系统](#cloud-os-clone)
 2. 查看系统母盘的内核校验和，如：4070e7f10398bb2e4688ba1d9a877519
 ```
@@ -89,19 +89,41 @@ Press 'n' to cancel (8s)
 ```
 6. 等待系统重启生成AOS(安装包)和BcoreOS(升级包)两个文件;
 
-> [AOS(安装包)的使用]()
-> [BcoreOS(升级包)的使用]()
+> [已有linux系统安装全新安装BcoreOS系统](#os-reinstall-fresh)
+
+> [已安装BcoreOS系统的主机升级其他版本的BcoreOS系统](#os-system-upgrade)
+
 
 ### 📀 使用通用发行版制作系统母盘 <a id="generic-os-base"></a>
 1. 下载linux发行版iso,如[rocky10.1](https://dl.rockylinux.org/vault/rocky/10.1/isos/x86_64/Rocky-10.1-x86_64-dvd1.iso)
 2. 使用虚拟机或者物理机安装系统、驱动、应用程序
 3. 使用`md5sum /boot/vmlinuz-$(uname -r)`查看安装好的系统的内核校验和在[已适配系统](#supported-systems)清单范围内，不在请联系我们适配
 
+> 查看[快速开始](#quick-start)继续后续步骤
+
 ### ☁️ 使用已有云服务系统作为系统母盘<a id="cloud-os-clone"></a>
 使用`md5sum /boot/vmlinuz-$(uname -r)`查看安装好的系统的内核校验和在[已适配系统](#supported-systems) 清单范围内，不在请联系我们适配
+> 查看[快速开始](#quick-start)继续后续步骤
 
 ---
+### 🧼 已有linux系统安装全新安装BcoreOS系统<a id="os-reinstall-fresh"></a>
+1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall](#)脚本到目标机器
+2. 运行`./aosinstall  ./rocky10.1-20260821-6.223.1067_AOS.img.gz`进行系统覆盖安装
+```
+[root@localhost aos]# chmod +x aosinstall
+[root@localhost aos]# ./aosinstall ./rocky10.1-20260821-6.223.1067_AOS.img.gz
+Install disk: /dev/nvme0n1
+IP:           192.168.10.199/24
+GateWay:      192.168.10.1
+Memsize:      1929 M
+Do you want continue(y/n):y
+Start install ...
+```
+3. 执行完成后系统自动重启,重启后会继承原有ip地址,ssh登录信息:root/12345
+> 参考 [已安装BcoreOS系统的主机升级其他版本的BcoreOS系统](#os-system-upgrade) 继续下一步
 
+### 📈 已安装BcoreOS系统的主机升级其他版本的BcoreOS系统<a id="os-system-upgrade"></a>
+#### 🔼 widnwos下批量升级BcoreOS系统<a id="windows-system-upgrade"></a>
 
 ## 📄 开源协议
 
