@@ -20,6 +20,8 @@ BcoreOS负责：
 - 系统升级；
 - 系统版本升级切换。
 
+> 使用BcoreOS前往[快速开始](#quick-start)
+
 ---
 
 ##  🗺️ BcoreOS解决以下问题
