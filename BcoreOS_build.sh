@@ -263,7 +263,7 @@ prepare_aos(){
     fileList_count=${#fileList[@]}
     match_count=${#matches[@]}
     if [  "$((match_count + fileList_count))" -gt 0 ]; then
-        echo "Available AOS versions for BoreOS($kernel_path):"
+        echo "Available AOS versions for BcoreOS($kernel_path):"
         options=()
         for m in "${fileList[@]}"; do
             options+=("$m")
