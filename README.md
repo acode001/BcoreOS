@@ -6,20 +6,20 @@
 
 ---
 ##  🧱  使用BcoreOS需要具备的基础能力
+BcoreOS面向普通Linux使用者设计
+使用者只需要：
 
-1. 有一台Windows主机；
-   - 用于运行BcoreOS升级工具；
-   - 管理目标Linux主机。
+1. 一台Windows电脑；
+2. 会使用VMware/KVM安装通用Linux发行版；
+3. 会配置Linux网络；
+4. 会通过SSH连接Linux并执行命令、传输文件。
 
-2. 会使用虚拟机安装Linux系统；
-   - 可使用 VMware 等虚拟化软件安装标准的Linux发行版。
-   - Linux系统需要支持BcoreOS脚本运行所需的基础命令：`dd gzip md5sum kill ln mkdir pwd sort tail tr wait wget`
-   
-3. 具备Linux基础操作能力；
-   - 配置Linux网络；
-   - 在Windows下通过SSH连接Linux；
-   - 使用SSH传输文件和执行命令。
-   
+BcoreOS负责：
+- 系统镜像制作；
+- 系统部署；
+- 系统升级；
+- 系统版本升级切换。
+
 ---
 
 ##  🗺️ BcoreOS解决以下问题
