@@ -235,6 +235,13 @@ Start install ...
 
 ### 📈 已安装BcoreOS系统的主机升级其他版本的BcoreOS系统<a id="os-system-upgrade"></a>
 #### 🔼 Windows下批量升级BcoreOS系统<a id="windows-system-upgrade"></a>
+1. [下载](https://github.com/acode001/BcoreOS/releases/tag/v-20260823)安装Windows版本的升级工具，安装运行
+2. 加载BcoreOS系统更新包（如：rocky10.1-20260821-6.223.1067_BcoreOS.upt）
+3. 填写目标机器的IP及root密码
+4. 点击更新，等待工具提示更新完成即可
+> 注：更新过程可能遇网络等各种异常，如工具提示失败，重复更新即可
+
+---
 
 ## 📄 开源协议
 
