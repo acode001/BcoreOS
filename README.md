@@ -218,11 +218,11 @@ Press 'n' to cancel (8s)
 
 ---
 ### 🧼 已有linux系统安装全新安装BcoreOS系统<a id="os-reinstall-fresh"></a>
-1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall](#doc-top)脚本到目标机器
-2. 运行`./aosinstall  ./rocky10.1-20260821-6.223.1067_AOS.img.gz`进行系统覆盖安装
+1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall.sh](#doc-top)脚本到目标机器
+2. 运行`./aosinstall.sh  ./rocky10.1-20260821-6.223.1067_AOS.img.gz`进行系统覆盖安装
 ```
-[root@localhost aos]# chmod +x aosinstall
-[root@localhost aos]# ./aosinstall ./rocky10.1-20260821-6.223.1067_AOS.img.gz
+[root@localhost aos]# chmod +x aosinstall.sh
+[root@localhost aos]# ./aosinstall.sh ./rocky10.1-20260821-6.223.1067_AOS.img.gz
 Install disk: /dev/nvme0n1
 IP:           192.168.10.199/24
 GateWay:      192.168.10.1

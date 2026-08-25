@@ -246,8 +246,9 @@ get_imgs_from_local(){
 prepare_aos(){
     # 镜像:内核md5sum aos的md5sum 版本信息
     imgs=(
-        "4070e7f10398bb2e4688ba1d9a877519 30A1039187755E5E1DFF797C1B3CAFC1 AOS-6.223.3068_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
-        "4070e7f10398bb2e4688ba1d9a877519 96462AF584A3A42720BBECC808FB4C71 AOS-6.223.2178_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 F98B3CCBE0383476609F820D27A206B2 AOS-6.224.2750_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 07E7F630D8F5F1AAD5CBEF264DFD2607 AOS-6.224.1804_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 1F7A6F442210B6CC81E1D99C240AC8F8 AOS-6.223.3305_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
     )
     kernel_md5sum=$(md5sum "$kernel_path")
     kernel_md5sum="${kernel_md5sum%% *}" 
