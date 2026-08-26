@@ -246,6 +246,9 @@ get_imgs_from_local(){
 prepare_aos(){
     # 镜像:内核md5sum aos的md5sum 版本信息
     imgs=(
+        "4070e7f10398bb2e4688ba1d9a877519 05A80117071F6B49DAEE65A2CA97C235 AOS-6.225.2004_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 10253DAC6B18BFD0FFFFB20DF07AEDDB AOS-6.225.1995_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
+        "4070e7f10398bb2e4688ba1d9a877519 A29AF1C5EA6DBF0089AD93F74AE46037 AOS-6.225.1818_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
         "4070e7f10398bb2e4688ba1d9a877519 F98B3CCBE0383476609F820D27A206B2 AOS-6.224.2750_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
         "4070e7f10398bb2e4688ba1d9a877519 07E7F630D8F5F1AAD5CBEF264DFD2607 AOS-6.224.1804_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
         "4070e7f10398bb2e4688ba1d9a877519 1F7A6F442210B6CC81E1D99C240AC8F8 AOS-6.223.3305_for_rocky10.1(6.12.0-124.8.1.el10_1.x86_64)"
@@ -539,39 +542,50 @@ patch_initrd(){
         fi
         rm -rf "$tmpDir/initrd"
     }
-    local patched=0
-    # 拷贝命令 
+    local check_initrd_valid=1
     {
-        REQUIRED_CMDS="gzip cpio"
-        for cmd in $REQUIRED_CMDS; do
-            local realPath=""
-            get_command_path_to_var "$cmd" "realPath"
-            if [[ -z "$realPath" ]]; then
-                echo " [ERROR] Missing critical maintenance tool in PATH: $cmd"
-            elif [[ ! -e "$tmpDir/$realPath" ]] ;then
-                \cp -a "$realPath" "$tmpDir/$realPath"
-                patched=1;
+        check_paths="/etc /usr/lib64 /usr/lib/systemd/system"
+        for path in $check_paths; do
+            if [[ ! -e "$tmpDir/$path" ]];then
+                check_initrd_valid=0
+                break
             fi
         done
     }
-    # 拷贝工具
-    {
-        local ptool_md5="1";
-        local ptool_real_md5="2";
-        if [[ -e "$tmpDir/ptool" ]];then
-            ptool_md5=$(md5sum "$tmpDir/ptool");
-            ptool_real_md5=$(md5sum "$aosDir/ptool");
-        fi
-        if [[ $ptool_md5 != $ptool_real_md5 ]];then
-            \cp -a "$aosDir/ptool" "$tmpDir/ptool"
-            patched=1;
-        fi
-    }
-    # 修改脚本
-    {
-        local target_service_path="$tmpDir/usr/lib/systemd/system/BcoreOS_build.service"
-        local cmd="/bin/sh -c \"mkdir /pDir && cd /pDir;gzip -d -c /ptool |cpio -idm 2>/dev/null;/pDir/tmp/systemLoad p3img > /dev/shm/p3img.log 2>&1\""
-        local service_content="[Unit]
+    if [[ $check_initrd_valid -eq 1 ]];then
+        local patched=0
+        # 拷贝命令 
+        {
+            REQUIRED_CMDS="gzip cpio"
+            for cmd in $REQUIRED_CMDS; do
+                local realPath=""
+                get_command_path_to_var "$cmd" "realPath"
+                if [[ -z "$realPath" ]]; then
+                    echo " [ERROR] Missing critical maintenance tool in PATH: $cmd"
+                elif [[ ! -e "$tmpDir/$realPath" ]] ;then
+                    \cp -a "$realPath" "$tmpDir/$realPath"
+                    patched=1;
+                fi
+            done
+        }
+        # 拷贝工具
+        {
+            local ptool_md5="1";
+            local ptool_real_md5="2";
+            if [[ -e "$tmpDir/ptool" ]];then
+                ptool_md5=$(md5sum "$tmpDir/ptool");
+                ptool_real_md5=$(md5sum "$aosDir/ptool");
+            fi
+            if [[ $ptool_md5 != $ptool_real_md5 ]];then
+                \cp -a "$aosDir/ptool" "$tmpDir/ptool"
+                patched=1;
+            fi
+        }
+        # 修改脚本
+        {
+            local target_service_path="$tmpDir/usr/lib/systemd/system/BcoreOS_build.service"
+            local cmd="/bin/sh -c \"mkdir /pDir && cd /pDir;gzip -d -c /ptool |cpio -idm 2>/dev/null;/pDir/tmp/systemLoad p3img > /dev/shm/p3img.log 2>&1\""
+            local service_content="[Unit]
 Description=Service for generating BcoreOS installation and upgrade packages
 DefaultDependencies=no
 After=initrd-root-fs.target
@@ -585,31 +599,32 @@ TimeoutSec=0
 RemainAfterExit=yes
 [Install]
 WantedBy=initrd-switch-root.target"
-        local need_write=1
-        if [[ -f "$target_service_path" ]]; then
-            local file_content=$(cat "$target_service_path")
-            if [[ "$file_content" == "$service_content" ]]; then
-                need_write=0
+            local need_write=1
+            if [[ -f "$target_service_path" ]]; then
+                local file_content=$(cat "$target_service_path")
+                if [[ "$file_content" == "$service_content" ]]; then
+                    need_write=0
+                fi
             fi
+            if [[ $need_write -eq 1 ]];then
+                printf '%s\n' "$service_content" > "$target_service_path"
+                patched=1; 
+            fi
+            local service_filename="${target_service_path##*/}"
+            local wants_dir="$tmpDir/usr/lib/systemd/system/initrd-switch-root.target.wants"
+            local link_path="$wants_dir/$service_filename"
+            local target_abs_path="$tmpDir/usr/lib/systemd/system/$service_filename"
+            if [[ ! -L "$link_path" || ! "$link_path" -ef "$target_abs_path" ]]; then
+                mkdir -p $wants_dir
+                ln -sf "../$service_filename" "$link_path"
+                patched=1
+            fi
+        }
+        # 打包还原
+        if [[  $patched -eq 1 ]];then
+            find . -path "./initrd" -prune -o -print |cpio -co --quiet --renumber-inodes --ignore-devno|gzip >"$tmpDir/initrd"
+            mv "$tmpDir/initrd" "$initrd_file"
         fi
-        if [[ $need_write -eq 1 ]];then
-            printf '%s\n' "$service_content" > "$target_service_path"
-            patched=1; 
-        fi
-        local service_filename="${target_service_path##*/}"
-        local wants_dir="$tmpDir/usr/lib/systemd/system/initrd-switch-root.target.wants"
-        local link_path="$wants_dir/$service_filename"
-        local target_abs_path="$tmpDir/usr/lib/systemd/system/$service_filename"
-        if [[ ! -L "$link_path" || ! "$link_path" -ef "$target_abs_path" ]]; then
-            mkdir -p $wants_dir
-            ln -sf "../$service_filename" "$link_path"
-            patched=1
-        fi
-    }
-    # 打包还原
-    if [[  $patched -eq 1 ]];then
-        find . -path "./initrd" -prune -o -print |cpio -co --quiet --renumber-inodes --ignore-devno|gzip >"$tmpDir/initrd"
-        mv "$tmpDir/initrd" "$initrd_file"
     fi
     rm -rf $tmpDir
     cd $olddir
