@@ -5,6 +5,12 @@
 > **每一个镜像代表一个独立、完整的BcoreOS运行环境版本。该镜像既可用于普通Linux主机首次部署，也可用于已有BcoreOS主机升级或切换。不同版本之间无需继承关系，可独立生成、保存和复用。**
 
 ---
+## 📢 社区与交流
+
+* **Telegram社区** ： [![Telegram](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/BcoreOS) 
+* **QQ交流群** ： [![QQ 群](https://img.shields.io/badge/Follow-QQ群-blue.svg?logo=QQ)](https://qm.qq.com/q/bBzZURprH4)
+
+---
 ##  🧱  使用BcoreOS需要具备的基础能力
 BcoreOS面向普通Linux使用者设计
 使用者只需要：
