@@ -7,8 +7,8 @@
 ---
 ## 📢 社区与交流
 
-* **Telegram社区** ： [![Telegram](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/BcoreOS) 
-* **QQ交流群** ： [![QQ 群](https://img.shields.io/badge/Follow-QQ群-blue.svg?logo=QQ)](https://qm.qq.com/q/bBzZURprH4)
+* **TG社区** ： [![Telegram](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/BcoreOS) 
+* **QQ交流** ： [![QQ 群](https://img.shields.io/badge/Follow-QQ群-blue.svg?logo=QQ)](https://qm.qq.com/q/bBzZURprH4)
 
 ---
 ##  🧱  使用BcoreOS需要具备的基础能力
@@ -146,7 +146,7 @@ F --> G[目标BcoreOS运行环境]
 |                      | arm linux版本                    |  🟡 测试改进中         | 实现多机批量版本切换、镜像差异传输 |
 | **升级安全**        | 掉电安全                         |  🟢                    | AOS使用双镜像实现升级过程掉电系统不出错，不失联 |
 |                      | 缺驱动不失联                     |  🟢                    | 升级采用试运行机制，新版本启动失败或硬件不兼容时自动回退原BcoreOS版本，避免远程设备失联 |
-|                      | 批量升级认证安全                 |  🟡 方案已确认,编码中   |详情见[设计文档](Documentation/FsSession：一种轻量级、可复用的安全会话与认证设计.md) |
+|                      | 批量升级认证安全                 |  🟢                    |详情见[设计文档](Documentation/FsSession：一种轻量级、可复用的安全会话与认证设计.md)  |
 | **AOS系统管理**      | 有线网卡管理                    |  🟡 测试改进中          | 可使用工具管理AOS下的有线网卡，与BcoreOS的自动同步还在开发中 |
 |                      | 无线网卡客户端                   |  🟡 测试改进中          | 可使用工具管理AOS下的无线网卡，与BcoreOS的自动同步还在开发中 |
 |                      | 无ip通信                         |  🟡 测试改进中          | 主机无ip或者ip错误时，可在局域网中使用工具配置主机的ip地址 |
@@ -224,7 +224,7 @@ Press 'n' to cancel (8s)
 
 ---
 ### 🧼 已有linux系统安装全新安装BcoreOS系统<a id="os-reinstall-fresh"></a>
-1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall.sh](#doc-top)脚本到目标机器
+1. 上传[快速开始](#quick-start)制作的AOS(安装包)和[aosinstall.sh](#)脚本到目标机器
 2. 运行`./aosinstall.sh  ./rocky10.1-20260821-6.223.1067_AOS.img.gz`进行系统覆盖安装
 ```
 [root@localhost aos]# chmod +x aosinstall.sh

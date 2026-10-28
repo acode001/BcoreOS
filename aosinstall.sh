@@ -8,13 +8,17 @@ if [[ $(id -u) -ne 0 ]];then
      exit 1
    fi
 fi
-if [[ "$0" != "/dev/shm/xiaozhiosinstall" ]];then
-  if [ ! -f /dev/shm/xiaozhiosinstall ];then
-    cp -a $(pwd)/"$0" /dev/shm/xiaozhiosinstall
-  fi
-  /dev/shm/xiaozhiosinstall "$@"
-  exit 0
-fi
+{
+    script_name="${0##*/}"
+    target_path="/dev/shm/$script_name"
+    if [[ "$0" != "$target_path" ]]; then
+        if [ ! -f "$target_path" ]; then
+            cp -a "$0" "$target_path"
+        fi
+        "$target_path" "$@"
+        exit 0
+    fi
+}
 img=""
 imgfromNet=0
 if [ $# -lt 1 ];then
@@ -70,14 +74,14 @@ fi
 memsize=$(cat /proc/meminfo |awk /^MemTotal/'{print $2}')
 if [[ $memsize"x" == "x" ]];then
   echo "Get memsize failed"
-  exit 0
+  exit 1
 else
   a=$(cat /proc/meminfo |awk /^MemTotal/'{print $3}')
   if [ "$a" == "kB" ];then
     memsize=$(($memsize*1024))
   else
     echo "Get memsize failed:"$a
-    exit 0
+    exit 1
   fi
 fi
 disk=""
@@ -107,17 +111,22 @@ for i in "/boot" "/";do
 done
 if [[ $disk"t" == "t" ]];then
     echo "Get disk failed"
-    exit 0
+    exit 1
 fi
 defaultroute=$(ip route |awk '$1~/^default$/{print $3}')
 if [[ $defaultroute"t" == "t" ]];then
   echo "Get default route failed"
-  exit 0
+  exit 1
+elif [[ "$defaultroute" == *$'\n'* ]]; then
+  echo "Error: Multiple default gateways are not supported!"
+  echo "Detected gateways:"
+  echo "$defaultroute"
+  exit 1
 fi
 ipaddr=$(ip addr |grep `ip route |awk /$defaultroute/'$1~/default$/{print $5}'` |awk '$1~/^inet$/{print $2}')
 if [[ $ipaddr"t" == "t" ]];then
   echo "Get ipaddr failed"
-  exit 0
+  exit 1
 fi
 echo "Install disk: "$disk
 echo "IP:           "$ipaddr
@@ -218,7 +227,7 @@ if [ ! -d / ];then
   fi
 fi
   if [ ! -f /dev/shm/xiaozhios.img.gz ];then 
-    cp -an $img /dev/shm/xiaozhios.img.gz
+    cp -a --update=none $img /dev/shm/xiaozhios.img.gz
   fi
   if [[ "x"$(ls -l /dev/shm/xiaozhios.img.gz |awk '{print $5}') = "x"$(ls -l $img |awk '{print $5}') ]];then img="/dev/shm/xiaozhios.img.gz";fi
   gzip -cd $img >/xiaozhi/xiaozhios.img
@@ -226,7 +235,7 @@ if [ ! -d / ];then
   for i in $(echo -e "/lib\n/usr\n/lib64\n/bin\n/sbin\n/etc\n/var");do
     if [ ! -L $i ] && [ -d $i ];then
       if [ $hasError -eq 0 ];then
-        cp -an $i /dev/shm$i >/dev/null 2>&1
+        cp -a --update=none $i /dev/shm$i >/dev/null 2>&1
         shmFreeSize=`df -k |awk '$6~/^\/dev\/shm$/{print $4}'`
         if [ "x$shmFreeSize" == "x" ];then
           shmFreeSize=`df -k |awk '$1~/^tmpfs$/ && $6~/^\/etc$/{print $4}'`
@@ -240,7 +249,7 @@ if [ ! -d / ];then
       if [ $hasError -ne 0 ];then
         echo "Not enough space to retain the original system,dir:\"$i\"."
         #break; 
-        cp -an $i /xiaozhi$i
+        cp -a --update=none $i /xiaozhi$i
         mount -o bind /xiaozhi$i $i
         sync
       fi
@@ -249,7 +258,7 @@ if [ ! -d / ];then
 fi
 else
   if [ ! -f /dev/shm/xiaozhios.img.gz ];then 
-    cp -an $img /dev/shm/xiaozhios.img.gz
+    cp -a --update=none $img /dev/shm/xiaozhios.img.gz
   fi
   if [[ "x"$(ls -l /dev/shm/xiaozhios.img.gz |awk '{print $5}') = "x"$(ls -l $img |awk '{print $5}') ]];then img="/dev/shm/xiaozhios.img.gz";fi
   gzip -cd $img >/xiaozhi/xiaozhios.img
@@ -316,6 +325,34 @@ if [ $freeSize -gt $shmSize ];then freeSize=$shmSize;fi
 freeSize=$(($freeSize/1024 - 1))  
 shmSize=$(df -k |awk '{if($6 ~ "^/dev/shm$")print $3}')
 memsize=$(($memsize - $shmSize * 1024 - $freeSize * 1024 *1024 ))
+{
+  if [ -f /proc/sys/kernel/printk ]; then
+    echo "0 0 0 0" > /proc/sys/kernel/printk
+  fi
+  BLOCKDEV_CMD=""
+  for path in /sbin/blockdev /usr/sbin/blockdev /bin/blockdev /usr/bin/blockdev; do
+    if [ -x "$path" ]; then
+      BLOCKDEV_CMD="$path"
+      break
+    fi
+  done
+  if [ -n "$BLOCKDEV_CMD" ]; then
+    for part in ${disk}[0-9]* ${disk}p[0-9]*; do
+      if [ -b "$part" ]; then
+        "$BLOCKDEV_CMD" --setro "$part"
+         if [ ! $("$BLOCKDEV_CMD" --getro "$part") -eq 1 ]; then
+           echo "Warning: Failed to lock $part..."
+         fi
+      fi
+    done
+    "$BLOCKDEV_CMD" --flushbufs "$disk"
+  fi
+  if [ -f /proc/sys/kernel/sysrq ]; then
+    echo 1 > /proc/sys/kernel/sysrq
+    echo u > /proc/sysrq-trigger
+    sleep 2
+  fi
+}
 trap '' SIGHUP
 export LD_LIBRARY_PATH=/dev/shm/cmd:$LD_LIBRARY_PATH
 export PATH="/dev/shm/cmd"
@@ -334,13 +371,13 @@ for((i=0;i<=memsize;));do
     sync
 done
 printf "progress:[%-100s]%d%%\r" $b 100
-echo ""
-echo "Install successfully,reboot ..."
-sleep 3
 ## full shm
 if [ $freeSize -gt 1 ];then
   dd if=/dev/zero of=/dev/shm/__f bs=1024000 count=$freeSize >/dev/null
 fi
+echo ""
+echo "Install successfully,reboot ..."
+sleep 3
 echo 1 > /proc/sys/kernel/sysrq
 echo b > /proc/sysrq-trigger
 sleep 3
