@@ -226,8 +226,12 @@ if [ ! -d / ];then
     mount -o remount,size=$(($rootSize / 1024 + 10))M /dev/shm
   fi
 fi
-  if [ ! -f /dev/shm/xiaozhios.img.gz ];then 
-    cp -a --update=none $img /dev/shm/xiaozhios.img.gz
+  if [ ! -f /dev/shm/xiaozhios.img.gz ];then
+    if cp --update=none --help >/dev/null 2>&1; then
+      cp -a --update=none $img /dev/shm/xiaozhios.img.gz
+    else
+      cp -an $img /dev/shm/xiaozhios.img.gz
+    fi
   fi
   if [[ "x"$(ls -l /dev/shm/xiaozhios.img.gz |awk '{print $5}') = "x"$(ls -l $img |awk '{print $5}') ]];then img="/dev/shm/xiaozhios.img.gz";fi
   gzip -cd $img >/xiaozhi/xiaozhios.img
@@ -235,7 +239,11 @@ if [ ! -d / ];then
   for i in $(echo -e "/lib\n/usr\n/lib64\n/bin\n/sbin\n/etc\n/var");do
     if [ ! -L $i ] && [ -d $i ];then
       if [ $hasError -eq 0 ];then
-        cp -a --update=none $i /dev/shm$i >/dev/null 2>&1
+        if cp --update=none --help >/dev/null 2>&1; then
+          cp -a --update=none $i /dev/shm$i >/dev/null 2>&1
+        else
+          cp -an $i /dev/shm$i >/dev/null 2>&1
+        fi
         shmFreeSize=`df -k |awk '$6~/^\/dev\/shm$/{print $4}'`
         if [ "x$shmFreeSize" == "x" ];then
           shmFreeSize=`df -k |awk '$1~/^tmpfs$/ && $6~/^\/etc$/{print $4}'`
@@ -248,8 +256,12 @@ if [ ! -d / ];then
       fi
       if [ $hasError -ne 0 ];then
         echo "Not enough space to retain the original system,dir:\"$i\"."
-        #break; 
-        cp -a --update=none $i /xiaozhi$i
+        #break;
+        if cp --update=none --help >/dev/null 2>&1; then
+          cp -a --update=none $i /xiaozhi$i
+        else
+          cp -an $i /xiaozhi$i
+        fi 
         mount -o bind /xiaozhi$i $i
         sync
       fi
@@ -257,8 +269,12 @@ if [ ! -d / ];then
   done
 fi
 else
-  if [ ! -f /dev/shm/xiaozhios.img.gz ];then 
-    cp -a --update=none $img /dev/shm/xiaozhios.img.gz
+  if [ ! -f /dev/shm/xiaozhios.img.gz ];then
+    if cp --update=none --help >/dev/null 2>&1; then
+      cp -a --update=none $img /dev/shm/xiaozhios.img.gz
+    else
+      cp -an $img /dev/shm/xiaozhios.img.gz
+    fi 
   fi
   if [[ "x"$(ls -l /dev/shm/xiaozhios.img.gz |awk '{print $5}') = "x"$(ls -l $img |awk '{print $5}') ]];then img="/dev/shm/xiaozhios.img.gz";fi
   gzip -cd $img >/xiaozhi/xiaozhios.img
